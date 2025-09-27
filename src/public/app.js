@@ -1079,14 +1079,17 @@ class ClaudeCodeWebInterface {
     }
 
     async showFolderBrowser() {
+        // Hide the overlay first to ensure folder browser is visible
+        this.hideOverlay();
+
         const modal = document.getElementById('folderBrowserModal');
         modal.classList.add('active');
-        
+
         // Prevent body scroll on mobile when modal is open
         if (this.isMobile) {
             document.body.style.overflow = 'hidden';
         }
-        
+
         // Load home directory by default
         await this.loadFolders();
     }

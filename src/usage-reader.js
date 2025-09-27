@@ -328,8 +328,17 @@ class UsageReader {
   
   async findJsonlFiles(onlyRecent = false) {
     const files = [];
-    
+
     try {
+      // Check if the projects directory exists first
+      try {
+        await fs.access(this.claudeProjectsPath);
+      } catch (err) {
+        // Directory doesn't exist, return empty array
+        console.log('Claude projects directory does not exist:', this.claudeProjectsPath);
+        return files;
+      }
+
       const projectDirs = await fs.readdir(this.claudeProjectsPath);
       
       for (const projectDir of projectDirs) {

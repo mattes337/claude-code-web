@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  claude-code-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: claude-code-web
+    
+    # Port mapping - change the host port (left) if needed
+    ports:
+      - "32352:32352"
+    
+    # Environment variables for configuration
+    env_file:
+      - .env
+    
+    # Volumes for persistence and configuration
+    volumes:
+      # Session data persistence
+      - ./sessions:/app/sessions
+      
+      # Claude configuration directory
+      - ./.claude:/home/claude/.claude
+      
+      # Optional: Mount local project directories
+      - /var/projects:/app/projects
+      
+      # Optional: Mount SSL certificates for HTTPS
+      # - ./certs:/app/certs:ro
+    
+    # Restart policy
+    restart: unless-stopped
+
+    labels:
+      - "traefik.http.routers.claude-code-web.entrypoints=websecure"
+      - "traefik.http.routers.claude-code-web.rule=Host(`claude.drydev.de`)"
+      - "traefik.http.routers.claude-code-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.claude-code-web.service=claude-code-web"
+      - "traefik.http.services.claude-code-web.loadbalancer.server.port=32352"
+
+      # CORS middleware configuration
+      - "traefik.http.middlewares.claude-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.claude-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.claude-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.claude-cors.headers.accesscontrolmaxage=100"
+      - "traefik.http.middlewares.claude-cors.headers.addvaryheader=true"
+      - "traefik.http.middlewares.claude-cors.headers.accesscontrolallowcredentials=true"
+
+      # Apply CORS middleware to the router
+      - "traefik.http.routers.claude-code-web.middlewares=claude-cors,claude-proxy"
+
+   
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+        
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Command override examples (uncomment one if needed)
+    # command: node bin/cc-web.js --port 32352 --plan max20
+    # command: node bin/cc-web.js --auth ${AUTH_TOKEN}
+    # command: node bin/cc-web.js --disable-auth --no-open
+    # command: node bin/cc-web.js --https --cert /app/certs/cert.pem --key /app/certs/key.pem
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:32352/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+

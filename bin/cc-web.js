@@ -109,11 +109,16 @@ async function main() {
     }
 
     let ngrokListener = null;
-    
+
+    // Check for external URL from environment variable
+    const externalUrl = process.env.EXTERNAL_URL;
+
     const protocol = options.https ? 'https' : 'http';
     const url = `${protocol}://localhost:${port}`;
-    
-    console.log(`\n🚀 Claude Code Web Interface is running at: ${url}`);
+
+    // Display external URL if configured, otherwise show local URL
+    const displayUrl = externalUrl || url;
+    console.log(`\n🚀 Claude Code Web Interface is running at: ${displayUrl}`);
 
     if (!noAuth) {
       console.log('\n📋 Authentication Required:');
@@ -168,7 +173,9 @@ async function main() {
     } else if (options.open) {
       // Open local URL only when ngrok not used and auto-open enabled
       try {
-        await open(url);
+        // Use external URL if configured, otherwise local URL
+        const openUrl = externalUrl || url;
+        await open(openUrl);
       } catch (error) {
         console.warn('Could not automatically open browser:', error.message);
       }

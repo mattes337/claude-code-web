@@ -73,11 +73,17 @@ self.addEventListener('fetch', event => {
     fetch(request)
       .then(response => {
         // If we got a valid response, update the cache
-        if (response && response.status === 200) {
+        // Only cache GET requests and http/https URLs (skip chrome-extension://, file://, etc.)
+        if (response && response.status === 200 && request.method === 'GET' &&
+            (request.url.startsWith('http://') || request.url.startsWith('https://'))) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME)
             .then(cache => {
               cache.put(request, responseToCache);
+            })
+            .catch(err => {
+              // Silently fail if caching is not supported for this URL
+              console.debug('Could not cache:', request.url, err);
             });
         }
         return response;
